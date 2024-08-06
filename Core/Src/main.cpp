@@ -22,6 +22,7 @@
 #include "open_table.h"
 #include "util_static_allocator.h"
 #include "stack.hpp"
+#include "tree.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,11 +86,9 @@ static void MX_USART2_UART_Init(void);
 #endif
 extern "C" {
 void gen_sort(int *a, const size_t count, int (*pred)(const int, const int));
-
-
 int asm_int_less(int v1, int v2);
 }
-
+int my_node_compare(struct my_node *a, struct my_node *b) ;
 // asm call
 void table_test1();
 void table_test_unique();
@@ -98,6 +97,7 @@ void test_placement_stl();
 void test_stack();
 void test_sort();
 void print_array(int* arr, const size_t count);
+void test_tree();
 
 int passed=0;
 int failed=0;
@@ -121,6 +121,7 @@ int main(void)
 	test_placement_stl();
 	test_stack();
 	test_sort();
+	test_tree();
 
 
   /* USER CODE END 1 */
@@ -286,6 +287,50 @@ PUTCHAR_PROTOTYPE
 /*-----------------------------------------------------------------------------
 Test functions and data
 -----------------------------------------------------------------------------*/
+struct my_node {
+	    RB_ENTRY(my_node) entry;
+	    int key;
+	};
+int my_node_compare(struct my_node *a, struct my_node *b) {
+	    return (a->key < b->key ? -1 : a->key > b->key);
+}
+RB_HEAD(my_tree, my_node);
+
+// Declare functions
+RB_PROTOTYPE(my_tree, my_node, entry, my_node_compare);
+RB_GENERATE(my_tree, my_node, entry, my_node_compare);
+void test_tree()
+{
+	// Define the tree
+
+	TC_BEGIN("BSD tree macros");
+    struct my_tree tree = RB_INITIALIZER(&tree);
+    struct my_node *node;
+
+    // Insertion
+    for (int i = 0; i < 100; i++) {
+        int r = rand() % 100;
+        node = (my_node*)Heap_Malloc(sizeof(*node));
+        node->key = r;
+        if (RB_INSERT(my_tree, &tree, node)) {
+            // If insertion fails (duplicate key), free the node
+            free(node);
+        }
+    }
+
+    // Iterate over the tree and print all keys
+    RB_FOREACH(node, my_tree, &tree) {
+        printf("%d ", node->key);
+    }
+    puts("\n");
+    // Cleanup
+    struct my_node *temp;
+    RB_FOREACH_SAFE(node, my_tree, &tree, temp) {
+        RB_REMOVE(my_tree, &tree, node);
+        Heap_Free(node);
+    }
+
+}
 void print_array(int * arr, const size_t count)
 {
         VERIFY(arr);
@@ -297,6 +342,7 @@ void print_array(int * arr, const size_t count)
 
 void test_sort()
 {
+	TC_BEGIN("Test ASM Insertion Sort");
 	const int BIGTABLE=100;
 	int a[BIGTABLE];
 
@@ -310,7 +356,7 @@ void test_sort()
 }
 void test_placement_stl()
 {
-
+	TC_BEGIN("Test std::vector with static allocator");
 	std::vector<int, util::static_allocator<int>> vec;
 
 	    // Perform operations on the vector
@@ -326,7 +372,7 @@ void test_placement_stl()
 }
 void table_test1()
 {
-
+	TC_BEGIN("Test Open Table 1");
 	open_table table;
 	table_init(&table, TABLESIZE, hash1, hash2);
 
@@ -355,6 +401,7 @@ void table_test1()
 
 void table_test_unique()
 {
+	TC_BEGIN("Test Open Table with unique doubles");
 	open_table table;
 	table_init(&table, TABLESIZE, hash1, hash2);
 
@@ -383,6 +430,7 @@ void table_test_unique()
 }
 void table_test_big()
 {
+	TC_BEGIN("Test Open Table with 1000 buckets");
 	const int BIGTABLE=1000;
 	open_table table;
 	table_init(&table, BIGTABLE, hash1, hash2);
@@ -399,6 +447,7 @@ void table_test_big()
 
 
 void test_stack() {
+	TC_BEGIN("Test CLRS Array-Based Stack");
     // Test 1: Push and Pop Sequence
 	TC_BEGIN("Test 1: Push and Pop Sequence");
     int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
@@ -463,9 +512,6 @@ void test_stack() {
     VERIFY(underflow_stack.pop() == 0);  // Expect default value
     REPORT("test_stack")
 }
-
-
-
 
 
 /* USER CODE END 4 */
