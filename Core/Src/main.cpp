@@ -21,8 +21,7 @@
 #include "common.h"
 #include "open_table.h"
 #include "util_static_allocator.h"
-
-
+#include "stack.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -88,6 +87,10 @@ static void MX_USART2_UART_Init(void);
 void table_test1();
 void table_test_unique();
 void test_placement_stl();
+void test_stack();
+int passed=0;
+int failed=0;
+int tcs=0;
 
 /* USER CODE END 0 */
 
@@ -104,6 +107,7 @@ int main(void)
 	table_test1();
 	table_test_unique();
 	test_placement_stl();
+	test_stack();
 
 
   /* USER CODE END 1 */
@@ -342,6 +346,74 @@ void table_test_unique()
 	table_destroy(&table);
 
 }
+
+void test_stack() {
+    // Test 1: Push and Pop Sequence
+	TC_BEGIN("Test 1: Push and Pop Sequence");
+    int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    int exp[] = { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+    stack<int> s;
+    for (auto& i : a) {
+        s.push(i);  // Use variable `i`, no change needed here
+    }
+    for (auto& i : exp) {
+    	auto tmp = s.pop();
+    	VERIFY(i == tmp);
+    }
+
+
+    // Test 2: Pop from an empty stack
+    TC_BEGIN("Test 2: Pop from an empty stack");
+    stack<int> empty_stack;
+    VERIFY(empty_stack.pop() == 0);  // Expect default value (0 for int)
+    VERIFY(empty_stack.empty());
+
+
+    // Test 3: Push to full capacity and pop
+    TC_BEGIN("Test 3: Push to full capacity and pop")
+    stack<int, 5> small_stack;
+    for (int i = 0; i < 5; ++i) {
+        small_stack.push(i);
+    }
+    VERIFY(!small_stack.empty());
+
+    // Attempt to push another element (should not be added)
+    TC_BEGIN("Attempt to push another element (should not be added)");
+    int value_to_push = 5;
+    small_stack.push(value_to_push);  // Should print "full"
+    for (int i = 4; i >= 0; --i) {
+    	auto tmp = small_stack.pop();
+        VERIFY(tmp == i);
+    }
+
+
+    // Test 4: Mixed operations
+    TC_BEGIN("Test 4: Mixed operations");
+    stack<int> mixed_stack;
+    int v1 = 10, v2 = 20, v3 = 30, v4 = 40;
+    mixed_stack.push(v1);
+    mixed_stack.push(v2);
+    auto tmp = mixed_stack.pop();
+    VERIFY(tmp == v2);
+    mixed_stack.push(v3);
+    mixed_stack.push(v4);
+    tmp = mixed_stack.pop();
+    VERIFY(tmp == v4);
+    tmp = mixed_stack.pop();
+    VERIFY(tmp == v3);
+    tmp = mixed_stack.pop();
+    VERIFY(tmp == v1);
+    VERIFY(mixed_stack.empty());
+
+
+    // Test 5: Check for stack underflow handling
+    TC_BEGIN("Test 5: Check for stack underflow handling");
+    stack<int> underflow_stack;
+    VERIFY(underflow_stack.pop() == 0);  // Expect default value
+    REPORT("test_stack")
+}
+
+
 
 
 
