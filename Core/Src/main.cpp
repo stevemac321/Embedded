@@ -83,11 +83,22 @@ static void MX_USART2_UART_Init(void);
 #ifndef NL
 #define NL printf("\n")
 #endif
+extern "C" {
+void gen_sort(int *a, const size_t count, int (*pred)(const int, const int));
 
+
+int asm_int_less(int v1, int v2);
+}
+
+// asm call
 void table_test1();
 void table_test_unique();
+void table_test_big();
 void test_placement_stl();
 void test_stack();
+void test_sort();
+void print_array(int* arr, const size_t count);
+
 int passed=0;
 int failed=0;
 int tcs=0;
@@ -106,8 +117,10 @@ int main(void)
 	initialise_monitor_handles();
 	table_test1();
 	table_test_unique();
+	table_test_big();
 	test_placement_stl();
 	test_stack();
+	test_sort();
 
 
   /* USER CODE END 1 */
@@ -160,7 +173,7 @@ int main(void)
 
   while (1)
   {
-	  printf("hello arm");
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -273,6 +286,28 @@ PUTCHAR_PROTOTYPE
 /*-----------------------------------------------------------------------------
 Test functions and data
 -----------------------------------------------------------------------------*/
+void print_array(int * arr, const size_t count)
+{
+        VERIFY(arr);
+        for(int i = 0; i < count; i++)
+                printf("%d ", arr[i]);
+
+        printf("\n");
+}
+
+void test_sort()
+{
+	const int BIGTABLE=100;
+	int a[BIGTABLE];
+
+	for(int i=0; i < BIGTABLE; i++) {
+		int r = (rand() % 100);
+		a[i] = r;
+
+	}
+	gen_sort(a, _countof(a), asm_int_less);
+	print_array(a, _countof(a));
+}
 void test_placement_stl()
 {
 
@@ -346,6 +381,22 @@ void table_test_unique()
 	table_destroy(&table);
 
 }
+void table_test_big()
+{
+	const int BIGTABLE=1000;
+	open_table table;
+	table_init(&table, BIGTABLE, hash1, hash2);
+
+	for(int i=0; i < BIGTABLE / 2; i++) {
+		int r = rand();
+		table_insert(&table, r);
+	}
+
+	analyze_clusters(&table);
+	table_destroy(&table);
+
+}
+
 
 void test_stack() {
     // Test 1: Push and Pop Sequence
